@@ -38,6 +38,12 @@ namespace FC.Unpacker
                 return;
             }
 
+            if (Path.GetFileName(m_LpkgFile) != "data.lpkg")
+            {
+                Utils.iSetError("[ERROR]: You must specify the path to the file -> data.lpkg <-");
+                return;
+            }
+
             LpkgUnpack.iDoIt(m_LpkgFile, m_Output);
         }
     }
