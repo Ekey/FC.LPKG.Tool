@@ -30,7 +30,7 @@ namespace FC.Unpacker
                         throw new Exception("[ERROR]: Invalid magic of LPKG index file!");
                     }
 
-                    if (m_TableHeader.dwVersion != 120)
+                    if (m_TableHeader.dwVersion != 120 && m_TableHeader.dwVersion != 130)
                     {
                         throw new Exception("[ERROR]: Invalid version of LPKG index file!");
                     }
@@ -38,20 +38,28 @@ namespace FC.Unpacker
                     m_EntryTable.Clear();
                     for (Int32 i = 0; i < m_TableHeader.dwTotalFiles; i++)
                     {
-                        UInt32 dwNameHash = TTableReader.ReadUInt32();
-                        Int32 dwPackageID = TTableReader.ReadInt32();
-                        Int64 dwOffset = TTableReader.ReadInt64();
-                        Int64 dwSize = TTableReader.ReadInt64();
+                        var m_Entry = new LpkgEntry();
 
-                        var TEntry = new LpkgEntry
+                        if (m_TableHeader.dwVersion == 120)
                         {
-                            dwNameHash = dwNameHash,
-                            dwPackageID = dwPackageID,
-                            dwOffset = dwOffset,
-                            dwSize = dwSize,
-                        };
+                            m_Entry.dwNameHash = TTableReader.ReadUInt32();
+                            m_Entry.dwPackageID = TTableReader.ReadInt32();
+                            m_Entry.dwOffset = TTableReader.ReadInt64();
+                            m_Entry.dwSize = TTableReader.ReadInt64();
 
-                        m_EntryTable.Add(TEntry);
+                            m_EntryTable.Add(m_Entry);
+                        }
+                        else if (m_TableHeader.dwVersion == 130)
+                        {
+                            m_Entry.dwNameHash = TTableReader.ReadUInt32();
+                            m_Entry.dwCrc = TTableReader.ReadUInt32();
+                            m_Entry.dwPackageID = TTableReader.ReadInt64();
+                            m_Entry.dwOffset = TTableReader.ReadInt64();
+                            m_Entry.dwSize = TTableReader.ReadInt64();
+
+                            m_EntryTable.Add(m_Entry);
+                        }
+
                     }
 
                     TTableReader.Dispose();
@@ -64,12 +72,23 @@ namespace FC.Unpacker
             {
                 String m_FileName = LpkgHashList.iGetNameFromHashList(m_Entry.dwNameHash);
                 String m_FullPath = m_DstFolder + m_FileName.Replace("/", @"\");
-                String m_Package = Path.GetDirectoryName(m_Archive) + @"\" + String.Format("data.lpkg.{0}", m_Entry.dwPackageID);
+                String m_ArchiveFile = Path.GetDirectoryName(m_Archive) + @"\" + String.Format("data.lpkg.{0}", m_Entry.dwPackageID);
 
                 Utils.iSetInfo("[UNPACKING]: " + m_FileName);
                 Utils.iCreateDirectory(m_FullPath);
 
-                LpkgHelpers.ReadWriteFile(m_Package, m_FullPath, m_Entry.dwOffset, (Int32)m_Entry.dwSize);
+                using (FileStream TArchiveStream = File.OpenRead(m_ArchiveFile))
+                {
+                    TArchiveStream.Seek(m_Entry.dwOffset, SeekOrigin.Begin);
+
+                    var lpBuffer = TArchiveStream.ReadBytes((Int32)m_Entry.dwSize);
+
+                    lpBuffer = Zlib.iDecompress(lpBuffer);
+
+                    File.WriteAllBytes(m_FullPath, lpBuffer);
+
+                    TArchiveStream.Dispose();
+                }
             }
         }
     }

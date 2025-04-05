@@ -51,7 +51,6 @@
     <Compile Include="FileSystem\Package\LpkgHashList.cs" />
     <Compile Include="FileSystem\Package\LpkgHeader.cs" />
     <Compile Include="FileSystem\Package\LpkgUnpack.cs" />
-    <Compile Include="FileSystem\Package\LpkgHelpers.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
